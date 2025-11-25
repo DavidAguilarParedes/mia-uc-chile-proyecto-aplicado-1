@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fastembed>=0.7.3",
     "langchain>=1.1.0",
     "langchain-mcp-adapters>=0.1.14",
     "langchain-openai>=1.1.0",
@@ -14,4 +15,5 @@ dependencies = [
     "llama-index-vector-stores-qdrant>=0.9.0",
     "openai>=2.8.1",
     "qdrant-client>=1.16.0",
+    "streamlit>=1.51.0",
 ]
