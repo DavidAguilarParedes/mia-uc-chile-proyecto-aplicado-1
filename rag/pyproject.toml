@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "fastembed>=0.7.3",
     "langchain>=1.1.0",
+    "langchain-community>=0.4.1",
     "langchain-mcp-adapters>=0.1.14",
     "langchain-openai>=1.1.0",
     "langchain-qdrant>=1.1.0",
@@ -16,7 +17,11 @@ dependencies = [
     "llama-index-vector-stores-qdrant>=0.9.0",
     "matplotlib>=3.10.7",
     "openai>=2.8.1",
+    "openai-agents>=0.6.1",
     "qdrant-client>=1.16.0",
+    "ragas>=0.3.9",
+    "rank-bm25>=0.2.2",
     "sentence-transformers>=5.1.2",
     "streamlit>=1.51.0",
+    "unstructured[md]>=0.18.21",
 ]
