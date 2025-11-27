@@ -1,8 +1,6 @@
 
 ---
 
-## 📄 Raw Text (sin formato)
-
 RAG Hito 1: Clean Architecture
 
 This project implements a Retrieval-Augmented Generation (RAG) system using Hexagonal Architecture.  
