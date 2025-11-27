@@ -10,9 +10,10 @@ from src.infrastructure.vector_stores.qdrant_db import QdrantImpl
 from src.application.services.rag_service import VectorStoreService, run_indexing_service, run_retrieval_service
 from src.infrastructure.llm.local_llm_factory import LocalResourcesFactory
 
-from datasets import Dataset 
+from datasets import Dataset
 from ragas import evaluate
-from ragas.metrics import answer_relevancy, faithfulness
+from ragas.metrics import context_precision, context_recall
+from ragas.run_config import RunConfig
 
 # Cargar variables de entorno
 load_dotenv()
@@ -65,11 +66,11 @@ class BaselineEvaluator:
         df = pd.read_csv(DATASET_PATH)
         
         # Validar columnas necesarias
-        if 'user_input' not in df.columns or 'reference' not in df.columns:
+        if "user_input" not in df.columns or "reference" not in df.columns:
             return None, "❌ El CSV debe tener columnas 'user_input' y 'reference'."
 
-        questions = df['user_input'].tolist()
-        ground_truths = df['reference'].tolist()
+        questions = df["user_input"].tolist()
+        ground_truths = df["reference"].tolist()
         
         answers = []
         contexts = []
@@ -85,22 +86,22 @@ class BaselineEvaluator:
             # Llamada al servicio RAG
             results = run_retrieval_service(q, self.rag_service, top_k=3)
             
-            # Preparar contexto para Ragas
+            # Preparar contexto para Ragas (lista de strings)
             retrieved_text = [c.content for c in results]
             
-            # Simular respuesta (tomando el top 1 o un mensaje genérico)
+            # "Respuesta" = top-1 chunk, solo para cumplir schema
             generated_answer = results[0].content if results else "No information found."
             
             answers.append(generated_answer)
             contexts.append(retrieved_text)
             progress_bar.progress((i + 1) / total)
 
-        # 4. Preparar Dataset Ragas
+        # 4. Preparar Dataset Ragas (igual que run_eval.py)
         eval_data = {
             "question": questions,
             "answer": answers,
             "contexts": contexts,
-            "ground_truth": ground_truths
+            "ground_truth": ground_truths,
         }
         eval_dataset = Dataset.from_dict(eval_data)
 
@@ -110,20 +111,28 @@ class BaselineEvaluator:
         llm = LocalResourcesFactory.get_generator_llm("qwen2.5:1.5b")
         embeddings = LocalResourcesFactory.get_embeddings()
 
-        # 6. Ejecutar Ragas
-        # Nota: evaluate es asíncrono internamente a veces, pero la API principal bloquea.
-        result = evaluate(
-            eval_dataset,
-            metrics=[answer_relevancy, faithfulness],
-            llm=llm, 
-            embeddings=embeddings
+        # RunConfig para evitar TimeoutError con LLM local
+        run_config = RunConfig(
+            timeout=120,     # súbelo si aún ves timeouts (180-300)
+            max_workers=2,   # menos concurrencia para no ahogar la máquina
+            max_retries=2,
         )
 
-        status.empty()
+        # 6. Ejecutar Ragas con métricas de retrieval
+        result = evaluate(
+            eval_dataset,
+            metrics=[context_precision, context_recall],
+            llm=llm,
+            embeddings=embeddings,
+            run_config=run_config,
+            raise_exceptions=False,
+        )
+
         progress_bar.empty()
         
-        # Retornar DataFrame de resultados y métrica global
+        # Retornar DataFrame de resultados y objeto Ragas
         return result.to_pandas(), result
+
 
 # ==============================================================================
 # 3. INTERFAZ GRÁFICA
@@ -211,30 +220,33 @@ def main():
             else:
                 st.success("¡Evaluación Completada!")
                 
-                # 1. Calcular Promedios (Solución al error de lista)
-                faith_score = df_res['faithfulness'].mean()
-                relevancy_score = df_res['answer_relevancy'].mean()
+                # 1. Calcular promedios de las métricas de retrieval
+                precision_score = df_res["context_precision"].mean()
+                recall_score = df_res["context_recall"].mean()
 
                 col1, col2 = st.columns(2)
-                col1.metric("Faithfulness", f"{faith_score:.4f}")
-                col2.metric("Answer Relevancy", f"{relevancy_score:.4f}")
+                col1.metric("Context Precision", f"{precision_score:.4f}")
+                col2.metric("Context Recall", f"{recall_score:.4f}")
 
-                # 2. Mostrar Tabla (Solución al error de columnas)
-                # Definimos las columnas que Ragas suele devolver
-                target_cols = ['user_input', 'faithfulness', 'answer_relevancy', 'response']
-                
-                # Seleccionamos solo las que existen en df_res para evitar KeyErrors
+                # 2. Mostrar tabla con columnas relevantes
+                target_cols = [
+                    "question",
+                    "context_precision",
+                    "context_recall",
+                    "answer",
+                    "ground_truth",
+                ]
                 final_cols = [c for c in target_cols if c in df_res.columns]
-                
+
                 st.dataframe(df_res[final_cols], use_container_width=True)
                 
-                # Opción de descargar
-                csv = df_res.to_csv(index=False).encode('utf-8')
+                # 3. Botón de descarga
+                csv = df_res.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     "💾 Descargar Resultados CSV",
                     csv,
                     "ragas_results.csv",
-                    "text/csv"
+                    "text/csv",
                 )
 
 if __name__ == "__main__":
