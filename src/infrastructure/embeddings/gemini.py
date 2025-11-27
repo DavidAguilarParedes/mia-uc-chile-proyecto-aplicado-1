@@ -8,12 +8,14 @@ import os
 from src.domain.models import ProcessedChunk
 from src.application.ports.embedder_port import AbstractEmbedder
 
+
+DEFAULT_EMBED_MODEL = "models/text-embedding-004" 
 class GeminiEmbedder(AbstractEmbedder):
     """
     Adapter para usar Gemini Embeddings sobre ProcessedChunk.
     """
 
-    def __init__(self, api_key: Optional[str] = None, model_name: str = EMBED_MODEL):
+    def __init__(self, api_key: Optional[str] = None, model_name: str = DEFAULT_EMBED_MODEL):
         api_key = api_key or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise RuntimeError("GOOGLE_API_KEY no está configurada.")
