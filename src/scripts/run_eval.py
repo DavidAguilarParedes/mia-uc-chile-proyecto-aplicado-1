@@ -7,7 +7,7 @@ from datasets import Dataset
 from ragas import evaluate
 from ragas.metrics import answer_relevancy, faithfulness
 
-# Truco para asegurar que encuentre el modulo src si ejecutas desde scripts/
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src.infrastructure.embeddings.huggingface import HuggingFaceEmbedder
@@ -48,16 +48,10 @@ async def main():
     for q in questions:
         # Run Retrieval
         results = run_retrieval_service(q, rag_service, top_k=3)
-        
         # Simple concatenation of retrieved content for context
         retrieved_text = [c.content for c in results]
-        
-        # In a real RAG, you would have a Generation step here. 
-        # Since your current code is Retrieval-Only, we simulate the answer 
-        # by taking the best chunk or just passing the context.
         # Let's assume the "Answer" is the top 1 chunk content for now.
         generated_answer = results[0].content if results else "No answer found"
-        
         answers.append(generated_answer)
         contexts.append(retrieved_text)
 
@@ -70,14 +64,12 @@ async def main():
     }
     
     eval_dataset = Dataset.from_dict(eval_data)
-
     # 3. Configure Local LLM for Evaluation Metrics
     # Note: Qwen 1.5B is very small for evaluation metrics. It might be unstable.
     llm = LocalResourcesFactory.get_generator_llm("qwen2.5:1.5b")
     embeddings = LocalResourcesFactory.get_embeddings()
 
     print("⚖️  Running Evaluation (Faithfulness & Relevancy)...")
-    
     # We pass the local LLM to the metrics
     result = evaluate(
         eval_dataset,
@@ -85,10 +77,8 @@ async def main():
         llm=llm, 
         embeddings=embeddings
     )
-
     print("\n📊 Evaluation Results:")
     print(result)
-    
     # Save results
     result_df = result.to_pandas()
     result_df.to_csv("datasets/evaluation_results.csv", index=False)

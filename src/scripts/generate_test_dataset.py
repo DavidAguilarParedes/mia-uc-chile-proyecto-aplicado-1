@@ -1,7 +1,7 @@
 import sys
 import os
 
-# Truco para asegurar que encuentre el modulo src si ejecutas desde scripts/
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src.infrastructure.loaders.pdf_loader import PDFLoader
