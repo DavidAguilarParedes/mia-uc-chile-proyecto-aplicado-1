@@ -38,6 +38,17 @@ Project Structure
     └── infrastructure/    Adapters (PDFLoader, Qdrant, HuggingFace)
 ```
 
+To install depdencies for local run:
+
+```bash
+brew install ollama
+```
+
+```bash
+ollama serve
+ollama pull qwen2.5:1.5b
+```
+
 
 To run use:
 ```bash
@@ -45,10 +56,20 @@ uv sync
 uv run streamlit run app.py
 ```
 
+To Run generate test dataset or run eval use :
+
+```bash
+uv run src/scripts/generate_test_dataset.py
+uv run python src/scripts/run_eval.py
+```
+
+
+
+
+
 Example query:
 ```
 what is the m/z of 4-Dihydroxyacetophenone ?
 ```
 ---
 
-Si quieres que lo deje en formato README profesional (GitHub style) o con badges y secciones adicionales (instalación, arquitectura, troubleshooting), dime y te lo armo 💻🚀
