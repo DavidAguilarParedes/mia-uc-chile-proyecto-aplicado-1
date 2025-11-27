@@ -1,5 +1,6 @@
 # src/application/services/dataset_generation_service.py
 import os
+import glob
 from pathlib import Path
 from src.application.ports.loader_port import AbstractLoader
 from src.infrastructure.evaluation.ragas_generator import RagasLocalGenerator
@@ -15,26 +16,55 @@ class DatasetGenerationService:
         self.embedder = LocalResourcesFactory.get_embeddings()
         self.generator = RagasLocalGenerator(self.llm, self.embedder)
 
-    def run(self, input_file: str, output_dir: str = "evals/datasets", test_size: int = 5):
-        # 1. Cargar Documentos usando tu Loader existente
-        # Tu loader devuelve List[ProcessedChunk], necesitamos convertirlo a LangChain Document para Ragas
-        print(f"[Service] Cargando: {input_file}")
-        chunks = self.loader.load_and_chunk(input_file)
+    def run(self, input_dir: str, output_dir: str = "evals/datasets", test_size: int = 10):
+        """
+        Modified to scan a directory for PDFs, load all of them, and generate a 
+        consolidated Golden Dataset.
+        """
+        print(f"[Service] Scanning directory: {input_dir}")
         
-        # Adaptador: ProcessedChunk -> LangChain Document
-        langchain_docs = [
-            Document(page_content=c.content, metadata=c.metadata) 
-            for c in chunks
-        ]
+        # 1. Find all PDFs
+        pdf_files = glob.glob(os.path.join(input_dir, "*.pdf"))
+        
+        if not pdf_files:
+            print(f"⚠️ No PDF files found in {input_dir}")
+            return None
 
-        # 2. Generar Dataset
-        df = self.generator.generate_testset(langchain_docs, test_size=test_size)
+        all_langchain_docs: List[Document] = []
 
-        # 3. Guardar
+        # 2. Iterate and Load chunks from ALL files
+        for file_path in pdf_files:
+            try:
+                print(f"   📄 Loading: {os.path.basename(file_path)}")
+                chunks = self.loader.load_and_chunk(file_path)
+                
+                # Adapter: ProcessedChunk -> LangChain Document
+                # We accumulate them into a single list
+                docs = [
+                    Document(page_content=c.content, metadata=c.metadata) 
+                    for c in chunks
+                ]
+                all_langchain_docs.extend(docs)
+                
+            except Exception as e:
+                print(f"   ❌ Error loading {file_path}: {e}")
+
+        print(f"[Service] Total chunks loaded: {len(all_langchain_docs)}")
+
+        if not all_langchain_docs:
+            print("❌ No documents loaded. Exiting.")
+            return None
+
+        # 3. Generate Dataset (Ragas will create a KG from the combined documents)
+        print("[Service] Starting Ragas Generation...")
+        df = self.generator.generate_testset(all_langchain_docs, test_size=test_size)
+
+        # 4. Save
         Path(output_dir).mkdir(parents=True, exist_ok=True)
-        base_name = Path(input_file).stem
-        output_path = os.path.join(output_dir, f"{base_name}_golden_dataset.csv")
+        
+        # Use a generic name since it comes from a folder
+        output_path = os.path.join(output_dir, "golden_dataset.csv")
         
         df.to_csv(output_path, index=False)
-        print(f"✅ Dataset guardado en: {output_path}")
+        print(f"✅ Dataset saved to: {output_path}")
         return df
