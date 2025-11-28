@@ -230,12 +230,10 @@ def main():
 
                 # 2. Mostrar tabla con columnas relevantes
                 target_cols = [
-                    "question",
-                    "context_precision",
-                    "context_recall",
-                    "answer",
-                    "ground_truth",
+                    'user_input', 'retrieved_contexts', 'response', 'reference',
+       'context_precision', 'context_recall'
                 ]
+
                 final_cols = [c for c in target_cols if c in df_res.columns]
 
                 st.dataframe(df_res[final_cols], use_container_width=True)
