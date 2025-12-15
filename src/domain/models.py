@@ -22,5 +22,13 @@ class ProcessedChunk(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
     dense_vector: List[float] | None = None
     sparse_vector: List[float] | None = None
+    rerank_score: float | None = None
+
+class FilterSuggestion(BaseModel):
+    """
+    Contrato pydantic para el output de query processing
+    """
+    rewritten_query: str
+    metadata_filters: Dict[str, Any] = Field(default_factory=dict)
 
 
