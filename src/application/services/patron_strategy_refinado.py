@@ -8,7 +8,7 @@ class QueryRewritingStrategy(QueryProcessingStrategy):
         self.llm_service = llm_service
 
     def process_query(self, query: str) -> FilterSuggestion:
-        """" Retorna un objeto pydantic con la query optimizada y filtros""""
+        """" Retorna un objeto pydantic con la query optimizada y filtros"""
         return self.llm_service.generate_structured(
             f"Optimizar esta consulta científica: {query}"
             )
