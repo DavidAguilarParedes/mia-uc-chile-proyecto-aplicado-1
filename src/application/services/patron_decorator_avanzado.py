@@ -1,3 +1,6 @@
+from typing import List,Dict
+from src.domain.models import ProcessedChunk
+from abc import ABC, abstractmethod
 
 #base del decorator 
 class RetrievalDecorator(RetrievalStrategy):

@@ -1,3 +1,8 @@
+from src.domain.models import ProcessedChunk
+from abc import ABC, abstractmethod
+from pydantic import BaseModel,Field
+from typing import List, Dict, Optional, Set, Any
+
 class QueryProcessingStrategy(ABC):
     @abstractmethod
     def process_query(self, query: str) -> str:
